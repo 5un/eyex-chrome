@@ -6,11 +6,20 @@ window.addEventListener('load', function(){
     	senzeScreenWidth: window.innerWidth,
     	senzeScreenHeight: window.innerHeight,
 	    onFrameCallback: function(frame){
-	      console.log(frame);
+	      //console.log(frame);
 	    },
     	onBlinkCallback: function(e){
       		//Do Nothing
     	}
   	});
+
+  console.log(eyeTracker);
+
+  $('#btn-tracker-info').click(function(){
+    eyeTracker.getTrackerInfo(function(info){
+      console.log('response');
+      console.log(info);
+    });
+  });
 	
 });

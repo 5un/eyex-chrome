@@ -1,26 +1,32 @@
 (function(exports) {
 
- 	var CATEGORY = {
-    	TRACKER: 'tracker',
-    	CALIBRATION: 'calibration',
-    	HEARTBEAT: 'heartbeat'
-  	};
+	/**
+	 * Message Structure
+	 * {
+	 * 	type: "request" | "response" | "event",
+	 *	requestId:"",
+	 *	resource: "tracker" | "calibration",
+	 *	path: "",
+	 *	parameters: {
+	 *		param1: "",
+	 *		param2: ""
+	 *	},
+	 *	data: {
+	 *		"The return data"
+	 *	}
+	 * }
+	 */
 
- 	var REQUEST = {
-	    GET: 'get',
-	    SET: 'set',
-	    START: 'start',
-	    POINT_START: 'pointstart',
-	    POINT_END: 'pointend',
-	    ABORT: 'abort',
-	    CLEAR: 'clear'
- 	};
-
- 	var TRACKER_API_STATUS = {
-		NOT_STARTED: 0,
-		SENT_START_MESSAGE: 1,
-		STARTED: 2
+	var TYPE = {
+		REQUEST: 'request',
+		RESPONSE: 'response',
+		EVENT: 'event'
 	};
+
+ 	var RESOURCE = {
+    	TRACKER: 'tracker',
+    	CALIBRATION: 'calibration'
+  	};
 
 	var BLINK_PHASE = {
 		NOT_STARTED:0 ,
@@ -31,7 +37,6 @@
 
 	var defaultTrackerInfo = {
 		push: false,
-		heartbeatinterval: 3000,
 		version: 1,
 		trackerstate: undefined,
 		framerate: 30,
@@ -64,11 +69,11 @@
 	var tcpClient;
 
 	function TobiiEyeX(options){
-
+		this.latestRequestId = 1;
 		this.options = defaults;
 		this.trackerInfo = defaultTrackerInfo;
 		this.callback = {};
-		this.trackerAPIStatus = TRACKER_API_STATUS.NOT_STARTED;
+		this.apiCallback = {};
 		this.frame = {
 			smoothXY: {x: 0, y: 0},
 			deltaTime: 0,
@@ -93,7 +98,7 @@
 			blinkPhase: BLINK_PHASE.NOT_STARTED
 		};
 
-		this._onAPIResponse = this._onAPIResponse.bind(this);
+		this._onAPIMessageReceived = this._onAPIMessageReceived.bind(this);
 		this.callback.onFrameCallback = options.onFrameCallback;
 		this.callback.onBlinkCallback = options.onBlinkCallback;
 		this.options.nativeScreenWidth = options.nativeScreenWidth;
@@ -102,21 +107,26 @@
 		this.options.senzeScreenHeight = options.senzeScreenHeight;
 
 		tcpClient = new exports.TcpClient(this.options.host, this.options.port);
-		tcpClient.addResponseListener(this._onAPIResponse);
+		tcpClient.addResponseListener(this._onAPIMessageReceived);
 
 		tcpClient.connect(function(e){
 			console.log('EyeTribe Connected');
-			this.trackerAPIStatus = TRACKER_API_STATUS.STARTED;
-			//this._startTracker(function(){
-			//	this.trackerAPIStatus = TRACKER_API_STATUS.SENT_START_MESSAGE;
-			//}.bind(this));
+			// Get the basic info
+			this.getTrackerInfo((function(trackerInfo){
+				if(trackerInfo != undefined){
+					if(trackerInfo.screen_bounds != undefined){
+						this.options.nativeScreenWidth = trackerInfo.screen_bounds.width;
+						this.options.nativeScreenHeight = trackerInfo.screen_bounds.height;
+					}
+				}
+			}).bind(this));
+
 		}.bind(this));
+
 	}
 
 	// Internals
-	TobiiEyeX.prototype._onAPIResponse = function(response){
-		//console.log(response);
-		//console.log(response);
+	TobiiEyeX.prototype._onAPIMessageReceived = function(message){
 
 		/*
 		var splitted = response.split("\n");
@@ -144,88 +154,57 @@
 		}
 		*/
 		try{
-			response = JSON.parse(response);
-			
-			if(response.category == CATEGORY.TRACKER){
-				if(this.trackerAPIStatus == TRACKER_API_STATUS.SENT_START_MESSAGE){
-					console.log('start message response');
-					console.log(response);
-					if(response.statuscode == 200){
-						this.trackerAPIStatus = TRACKER_API_STATUS.STARTED;
-						this._heartbeat();
+			message = JSON.parse(message);
+
+			if(message.type === 'response'){
+				if(message.requestId != undefined){
+					var cb = this.apiCallback[message.requestId];
+					if(typeof cb === 'function'){
+						cb(message.data);
 					}
 				}
-
-				if( response.values != undefined ){
-					if( response.values.frame != undefined ){
-						this._processFrame(response.values.frame);
-						this.callback.onFrameCallback(this.frame);
-					}
-				}	
-
-			}else if(response.category === CATEGORY.CALIBRATION){
-
-				console.log('calibration callback');
-				console.log(response);
-				
-				if(this.callback.calibration != undefined){
-					this.callback.calibration(response);
+			}else if(message.type === 'request'){
+				// Not supported yet
+			}else if(message.type === 'event') {
+				if(message.event_type === 'frame'){
+					this._processFrame(message.data);
+					this.callback.onFrameCallback(this.frame);
 				}
-
-			} else {
-				this._processFrame(response);
-				this.callback.onFrameCallback(this.frame);
-
 			}
+
 		}catch(e){
-			console.log('response parse error');
 			console.log(e);
-			//console.log(response);
 		}
 	};
 
-	TobiiEyeX.prototype._sendAPIMessage = function(category, request, values, callback){
+	TobiiEyeX.prototype._sendAPIMessage = function(type, resource, path, parameters, callback){
 	    var msg = {
-	      "category": category,
-	      "request": request,
-	      "values": values
+	    	"type": type,
+	    	"resource": resource,
+	    	"path": path
 	    };
-    	tcpClient.sendMessage(JSON.stringify(msg), callback);
+
+	    if(type == 'request'){
+	    	var reqId = this.latestRequestId++;
+	    	msg.requestId = reqId;
+	    	this.apiCallback[reqId] = callback;
+	    }
+
+	    if(parameters != undefined){
+	    	msg.parameters = parameters;
+	    }
+	    
+    	tcpClient.sendMessage(JSON.stringify(msg));
   	};
 
-  	TobiiEyeX.prototype._getTrackerInfo = function(category, request, values, callback){
-	    this._sendAPIMessage('tracker', 'get', ['version', 'heartbeatinterval','trackerstate','framerate', 'iscalibrated'], function(e){
-				console.log('tracker status check sent');
-			});
-  	};
-
-  	TobiiEyeX.prototype._sendHeartbeat = function(callback){
-    	var msg = {category: "heartbeat"};
-    	tcpClient.sendMessage(JSON.stringify(msg), callback);
-  	};
-
-  	TobiiEyeX.prototype._startTracker = function(callback){
-  		console.log('startTracker');
-    	// TODO no need to start
-    	//tcpClient.sendAPIMessage(CATEGORY.TRACKER, REQUEST.SET, {"push": true, "version": 1},callback);
-  	};
-
-  	// Heartbeat Methods
-
-  	TobiiEyeX.prototype._heartbeat = function(callback){
-    	this._sendHeartbeat();
-		if(this.trackerAPIStatus == TRACKER_API_STATUS.STARTED){
-			setTimeout(function(){
-				this._heartbeat();
-			}.bind(this), this.trackerInfo.heartbeatinterval);
-		}
+  	TobiiEyeX.prototype.getTrackerInfo = function(callback){
+	    this._sendAPIMessage(TYPE.REQUEST, RESOURCE.TRACKER , 'get.basic_info', undefined, callback);
   	};
 
   	// Calibration Methods
-
   	TobiiEyeX.prototype.requestCalibration = function(){
   		// TODO use this calibrate
-  		this._sendAPIMessage(CATEGORY.CALIBRATION, REQUEST.START, {});
+  		this._sendAPIMessage(TYPE.REQUEST, RESOURCE.CALIBRATION, 'start', undefined, callback);
   	};
 
   	// Frame Processing
