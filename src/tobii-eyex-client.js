@@ -202,7 +202,7 @@
   	};
 
   	// Calibration Methods
-  	TobiiEyeX.prototype.requestCalibration = function(){
+  	TobiiEyeX.prototype.requestCalibration = function(callback){
   		// TODO use this calibrate
   		this._sendAPIMessage(TYPE.REQUEST, RESOURCE.CALIBRATION, 'start', undefined, callback);
   	};

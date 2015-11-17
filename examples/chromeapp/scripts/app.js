@@ -7,6 +7,7 @@ window.addEventListener('load', function(){
     	senzeScreenHeight: window.innerHeight,
 	    onFrameCallback: function(frame){
 	      //console.log(frame);
+        $('#results').html(JSON.stringify(frame));
 	    },
     	onBlinkCallback: function(e){
       		//Do Nothing
@@ -20,6 +21,10 @@ window.addEventListener('load', function(){
       console.log('response');
       console.log(info);
     });
+  });
+
+  $('#btn-calibrate').click(function(){
+    eyeTracker.requestCalibration();
   });
 	
 });
