@@ -61,8 +61,10 @@
 		blinkEyesCloseErrorTolerance: 500,
 		nativeScreenWidth: 1920,
 		nativeScreenHeight: 1280,
-		senzeScreenWidth: 1280,
-		senzeScreenHeight: 852
+		nativeScreenX: 0,
+		nativeScreenY: 0,
+		browserScreenWidth: 1280,
+		browserScreenHeight: 852
 
 	};
 
@@ -101,10 +103,8 @@
 		this._onAPIMessageReceived = this._onAPIMessageReceived.bind(this);
 		this.callback.onFrameCallback = options.onFrameCallback;
 		this.callback.onBlinkCallback = options.onBlinkCallback;
-		this.options.nativeScreenWidth = options.nativeScreenWidth;
-		this.options.nativeScreenHeight = options.nativeScreenHeight;
-		this.options.senzeScreenWidth = options.senzeScreenWidth;
-		this.options.senzeScreenHeight = options.senzeScreenHeight;
+		this.options.browserScreenWidth = options.browserScreenWidth;
+		this.options.browserScreenHeight = options.browserScreenHeight;
 
 		tcpClient = new exports.TcpClient(this.options.host, this.options.port);
 		tcpClient.addResponseListener(this._onAPIMessageReceived);
@@ -113,8 +113,11 @@
 			console.log('EyeTribe Connected');
 			// Get the basic info
 			this.getTrackerInfo((function(trackerInfo){
+				console.log(trackerInfo);
 				if(trackerInfo != undefined){
 					if(trackerInfo.screen_bounds != undefined){
+						this.options.nativeScreenX = trackerInfo.screen_bounds.x;
+						this.options.nativeScreenY = trackerInfo.screen_bounds.y;
 						this.options.nativeScreenWidth = trackerInfo.screen_bounds.width;
 						this.options.nativeScreenHeight = trackerInfo.screen_bounds.height;
 					}
@@ -238,8 +241,9 @@
 		*/
 		// Smooth XY
 		
-		frame.gaze.x = frame.gaze.x * this.options.senzeScreenWidth / this.options.nativeScreenWidth;
-		frame.gaze.y = frame.gaze.y * this.options.senzeScreenHeight / this.options.nativeScreenHeight;		
+		//console.log(this.options);
+		frame.gaze.x = (frame.gaze.x - this.options.nativeScreenX) * this.options.browserScreenWidth / this.options.nativeScreenWidth;
+		frame.gaze.y = (frame.gaze.y - this.options.nativeScreenY) * this.options.browserScreenHeight / this.options.nativeScreenHeight;		
 
 		var dx = Math.abs(this.frame.smoothXY.x - frame.gaze.x);
 		var dy = Math.abs(this.frame.smoothXY.y - frame.gaze.y);

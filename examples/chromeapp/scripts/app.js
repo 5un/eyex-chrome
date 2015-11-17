@@ -1,14 +1,15 @@
 window.addEventListener('load', function(){
 
 	var eyeTracker = new TobiiEyeX({
-    	nativeScreenWidth: 1920,
-    	nativeScreenHeight: 1080,
-    	senzeScreenWidth: window.innerWidth,
-    	senzeScreenHeight: window.innerHeight,
+    	browserScreenWidth: window.innerWidth,
+    	browserScreenHeight: window.innerHeight,
 	    onFrameCallback: function(frame){
 	      //console.log(frame);
         $('#results').html(JSON.stringify(frame));
-	    },
+
+        $('#gaze').css('left', frame.smoothXY.x + 'px');
+        $('#gaze').css('top', frame.smoothXY.y + 'px');
+      },
     	onBlinkCallback: function(e){
       		//Do Nothing
     	}

@@ -1,3 +1,13 @@
 #results {
 	border: 1px solid black;	
 }
+
+#gaze {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width:20px;
+	height: 20px;
+	background-color:red;
+	border-radius: 10px;
+}
