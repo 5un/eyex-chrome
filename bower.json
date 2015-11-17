@@ -1,0 +1,27 @@
+{
+  "name": "eyex-chrome",
+  "authors": [
+    "Soravis <soravis@runnables.co.th>"
+  ],
+  "description": "Tobii EyeX TCP Server Javascript Client for Chrome Apps/Extensions",
+  "main": "dist/eyex-chrome.js",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "tobii",
+    "eyex",
+    "chromeapps",
+    "chrome",
+    "extension"
+  ],
+  "license": "MIT",
+  "homepage": "http://5un.co",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
