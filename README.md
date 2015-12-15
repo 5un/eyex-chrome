@@ -7,10 +7,6 @@ Tobii EyeX TCP Javascript Client for Chrome App / Extensions
 3. Initialize Tobii EyeX with
 ```javascript
 	var eyeTracker = new TobiiEyeX({
-    	nativeScreenWidth: 1920,
-    	nativeScreenHeight: 1080,
-    	senzeScreenWidth: window.innerWidth,
-    	senzeScreenHeight: window.innerHeight,
 	    onFrameCallback: function(frame){
 	      console.log(frame);
 	    },
