@@ -62,9 +62,7 @@
 		nativeScreenWidth: 1920,
 		nativeScreenHeight: 1280,
 		nativeScreenX: 0,
-		nativeScreenY: 0,
-		browserScreenWidth: 1280,
-		browserScreenHeight: 852
+		nativeScreenY: 0
 
 	};
 
@@ -103,8 +101,6 @@
 		this._onAPIMessageReceived = this._onAPIMessageReceived.bind(this);
 		this.callback.onFrameCallback = options.onFrameCallback;
 		this.callback.onBlinkCallback = options.onBlinkCallback;
-		this.options.browserScreenWidth = options.browserScreenWidth;
-		this.options.browserScreenHeight = options.browserScreenHeight;
 
 		tcpClient = new exports.TcpClient(this.options.host, this.options.port);
 		tcpClient.addResponseListener(this._onAPIMessageReceived);
@@ -227,6 +223,8 @@
 		this.frame.deltaTime = (new Date()) - this.frame.lastFrameTime;
 		this.frame.lastFrameTime = new Date();
 
+		this.frame.nativeScreenWidth = this.options.nativeScreenWidth;
+		this.frame.nativeScreenHeight = this.options.nativeScreenHeight;
 		//TODO
 		this.frame.lefteye.pcenter.x = 1.0 - frame.eyePosition.leftNormalized.x;
 		this.frame.lefteye.pcenter.y = frame.eyePosition.leftNormalized.y;
@@ -242,8 +240,9 @@
 		// Smooth XY
 		
 		//console.log(this.options);
-		frame.gaze.x = (frame.gaze.x - this.options.nativeScreenX) * this.options.browserScreenWidth / this.options.nativeScreenWidth;
-		frame.gaze.y = (frame.gaze.y - this.options.nativeScreenY) * this.options.browserScreenHeight / this.options.nativeScreenHeight;		
+		frame.gaze.x = (frame.gaze.x - this.options.nativeScreenX) 
+		frame.gaze.y = (frame.gaze.y - this.options.nativeScreenY)
+
 
 		var dx = Math.abs(this.frame.smoothXY.x - frame.gaze.x);
 		var dy = Math.abs(this.frame.smoothXY.y - frame.gaze.y);
